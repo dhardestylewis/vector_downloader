@@ -1,0 +1,6 @@
+name: beulah_images
+channels:
+  - defaults
+dependencies:
+  - pip
+prefix: /Users/taccstaff/miniconda3/envs/beulah_images
