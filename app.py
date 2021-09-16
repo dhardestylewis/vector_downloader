@@ -36,7 +36,7 @@ fig = px.choropleth_mapbox(
     gdf,
     geojson = gdf.geometry,
     locations = gdf.index,
-    #color = color_on,
+    color = 'Area',
     color_continuous_scale = "Viridis",
     range_color = (0,12),
     mapbox_style = "open-street-map",
