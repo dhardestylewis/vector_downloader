@@ -7,6 +7,11 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 import pandas as pd
 
+
+gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
+gdf = gdf.to_crs(epsg=4326)
+
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -18,16 +23,40 @@ styles = {
     }
 }
 
-df = pd.DataFrame({
-    "x": [1,2,1,2],
-    "y": [1,2,3,4],
-    "customdata": [1,2,3,4],
-    "fruit": ["apple", "apple", "orange", "orange"]
-})
+#df = pd.DataFrame({
+#    "x": [1,2,1,2],
+#    "y": [1,2,3,4],
+#    "customdata": [1,2,3,4],
+#    "fruit": ["apple", "apple", "orange", "orange"]
+#})
 
-fig = px.scatter(df, x="x", y="y", color="fruit", custom_data=["customdata"])
+#fig = px.scatter(df, x="x", y="y", color="fruit", custom_data=["customdata"])
+fig = px.choropleth_mapbox(
+    gdf,
+    geojson = gdf.geometry,
+    locations = gdf.index,
+    color = color_on,
+    color_continuous_scale = "Viridis",
+    range_color = (0,12),
+    mapbox_style = "open-street-map",
+    zoom = 3,
+    center = {
+        "lat" : gdf.centroid.y.mean(),
+        "lon" : gdf.centroid.x.mean()
+    },
+    opacity = 0.5
+)
 
-fig.update_layout(clickmode='event+select')
+fig.update_layout(
+    margin = {
+        "r" : 0,
+        "t" : 0,
+        "l" : 0,
+        "b" : 0
+    },
+    clickmode = 'event+select',
+    height = 700
+)
 
 fig.update_traces(marker_size=20)
 
