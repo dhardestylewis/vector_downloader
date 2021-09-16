@@ -59,7 +59,7 @@ fig.update_layout(
     height = 700
 )
 
-fig.update_traces(marker_size=20)
+#fig.update_traces(marker_size=20)
 
 app.layout = html.Div([
     dcc.Graph(
