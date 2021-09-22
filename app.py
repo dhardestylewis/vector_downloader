@@ -77,7 +77,7 @@ app.layout = html.Div([
                 'Download',
                 id = 'btn_download',
                 n_clicks = 0
-            )
+            ))
         ),
 
         dbc.Row(
