@@ -135,7 +135,7 @@ app.layout = html.Div([
 
 
 @app.callback(
-    Output('intermediate-data', 'data')
+    Output('intermediate-data', 'data'),
     [
         Input("btn_submit", "n_clicks"),
         Input('basic-interactions', 'selectedData')
