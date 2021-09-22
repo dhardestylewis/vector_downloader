@@ -77,8 +77,7 @@ app.layout = html.Div([
                 html.Button(
                     'Download',
                     id = 'btn_download',
-                ),
-                dcc.Download(id='download-files')
+                )
             ])
         ),
 
@@ -137,7 +136,7 @@ app.layout = html.Div([
 @app.callback(
     Output('intermediate-data', 'data'),
     [
-        Input("btn_submit", "n_clicks"),
+        Input("btn_download", "n_clicks"),
         Input('basic-interactions', 'selectedData')
     ]
 )
@@ -147,7 +146,6 @@ def download(n_clicks,selectedData):
         download_data = gpd.GeoDataFrame(json.dumps(selectedData))
         urls = download_data.iloc[download_data.index]['url'].to_list()
         return(urls)
-
 
 
 @app.callback(
