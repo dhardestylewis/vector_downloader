@@ -149,11 +149,12 @@ def download(data):
         return(urls)
 
 
+
 @app.callback(
     Input("intermediate-data", 'urls'),
     prevent_initial_call = True
 )
-def make_download(urls)
+def make_download(urls):
     for url in urls:
         dcc.Download(id=url)
 
