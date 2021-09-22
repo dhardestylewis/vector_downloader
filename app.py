@@ -80,7 +80,7 @@ app.layout = html.Div([
             ))
         ),
 
-        dbc.Row(
+        dbc.Row([
 
             html.Div([
                 dcc.Markdown("""
@@ -126,7 +126,7 @@ app.layout = html.Div([
                 html.Pre(id='relayout-data', style=styles['pre']),
             ], className='three columns')
 
-        )
+        ])
 
     ])
 ])
