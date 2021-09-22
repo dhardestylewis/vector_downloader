@@ -139,7 +139,7 @@ app.layout = html.Div([
         Input("btn_submit", "n_clicks"),
         Input('basic-interactions', 'selectedData')
     ],
-        Output('intermediate-data', 'data')
+    Output('intermediate-data', 'data'),
     prevent_initial_call = True
 )
 def download(data):
