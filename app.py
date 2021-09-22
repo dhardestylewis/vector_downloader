@@ -3,6 +3,7 @@ import json
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.express as px
 #import pandas as pd
@@ -63,55 +64,70 @@ fig.update_layout(
 #fig.update_traces(marker_size=20)
 
 app.layout = html.Div([
+
     dcc.Graph(
         id='basic-interactions',
         figure=fig
     ),
 
     html.Div(className='row', children=[
-        html.Div([
-            dcc.Markdown("""
-                **Hover Data**
 
-                Mouse over values in the graph.
-            """),
-            html.Pre(id='hover-data', style=styles['pre'])
-        ], className='three columns'),
+        dbc.Row(
+            dbc.Col(html.Button(
+                'Download',
+                id = 'btn_download',
+                n_clicks = 0
+            )
+        ),
 
-        html.Div([
-            dcc.Markdown("""
-                **Click Data**
+        dbc.Row(
 
-                Click on points in the graph.
-            """),
-            html.Pre(id='click-data', style=styles['pre']),
-        ], className='three columns'),
+            html.Div([
+                dcc.Markdown("""
+                    **Hover Data**
+    
+                    Mouse over values in the graph.
+                """),
+                html.Pre(id='hover-data', style=styles['pre'])
+            ], className='three columns'),
+    
+            html.Div([
+                dcc.Markdown("""
+                    **Click Data**
+    
+                    Click on points in the graph.
+                """),
+                html.Pre(id='click-data', style=styles['pre']),
+            ], className='three columns'),
+    
+            html.Div([
+                dcc.Markdown("""
+                    **Selection Data**
+    
+                    Choose the lasso or rectangle tool in the graph's menu
+                    bar and then select points in the graph.
+    
+                    Note that if `layout.clickmode = 'event+select'`, selection data also
+                    accumulates (or un-accumulates) selected data if you hold down the shift
+                    button while clicking.
+                """),
+                html.Pre(id='selected-data', style=styles['pre']),
+            ], className='three columns'),
+    
+            html.Div([
+                dcc.Markdown("""
+                    **Zoom and Relayout Data**
+    
+                    Click and drag on the graph to zoom or click on the zoom
+                    buttons in the graph's menu bar.
+                    Clicking on legend items will also fire
+                    this event.
+                """),
+                html.Pre(id='relayout-data', style=styles['pre']),
+            ], className='three columns')
 
-        html.Div([
-            dcc.Markdown("""
-                **Selection Data**
+        )
 
-                Choose the lasso or rectangle tool in the graph's menu
-                bar and then select points in the graph.
-
-                Note that if `layout.clickmode = 'event+select'`, selection data also
-                accumulates (or un-accumulates) selected data if you hold down the shift
-                button while clicking.
-            """),
-            html.Pre(id='selected-data', style=styles['pre']),
-        ], className='three columns'),
-
-        html.Div([
-            dcc.Markdown("""
-                **Zoom and Relayout Data**
-
-                Click and drag on the graph to zoom or click on the zoom
-                buttons in the graph's menu bar.
-                Clicking on legend items will also fire
-                this event.
-            """),
-            html.Pre(id='relayout-data', style=styles['pre']),
-        ], className='three columns')
     ])
 ])
 
