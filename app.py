@@ -147,7 +147,6 @@ def download(data):
         download_data = gpd.GeoDataFrame(json.dumps(selectedData))
         urls = download_data.iloc[download_data.index]['url'].to_list()
         return(urls)
-)
 
 
 @app.callback(
