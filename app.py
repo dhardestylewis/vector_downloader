@@ -141,10 +141,10 @@ app.layout = html.Div([
     ],
     Output('intermediate-data', 'data')
 )
-def download(n_clicks,data):
+def download(n_clicks,selectedData):
     triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
     if triggered == "btn_submit":
-        download_data = gpd.GeoDataFrame(json.dumps(data))
+        download_data = gpd.GeoDataFrame(json.dumps(selectedData))
         urls = download_data.iloc[download_data.index]['url'].to_list()
         return(urls)
 
