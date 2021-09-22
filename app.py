@@ -77,7 +77,8 @@ app.layout = html.Div([
                 html.Button(
                     'Download',
                     id = 'btn_download',
-                )
+                ),
+                html.Pre(id='selected-data')
             ])
         ),
 
@@ -176,7 +177,10 @@ def display_click_data(clickData):
     Output('selected-data', 'children'),
     Input('basic-interactions', 'selectedData'))
 def display_selected_data(selectedData):
-    return json.dumps(selectedData, indent=2)
+    download_data = gpd.GeoDataFrame(json.dumps(selectedData))
+    urls = download_data.iloc[download_data.index]['url'].to_list()
+#    return json.dumps(selectedData, indent=2)
+    return(urls)
 
 
 @app.callback(
