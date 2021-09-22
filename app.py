@@ -138,7 +138,8 @@ app.layout = html.Div([
     [
         Input("btn_download", "n_clicks"),
         Input('basic-interactions', 'selectedData')
-    ]
+    ],
+
 )
 def download(n_clicks,selectedData):
     triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
@@ -149,7 +150,7 @@ def download(n_clicks,selectedData):
 
 
 @app.callback(
-    Input("intermediate-data", 'urls'),
+    Input("intermediate-data", 'data'),
     prevent_initial_call = True
 )
 def make_download(urls):
