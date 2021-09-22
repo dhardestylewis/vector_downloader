@@ -9,7 +9,8 @@ import plotly.express as px
 import geopandas as gpd
 
 
-gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
+#gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
+gdf = gpd.read_file('mexico.geojson')
 #gdf = gdf.to_crs(epsg=4326)
 
 
