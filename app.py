@@ -73,11 +73,13 @@ app.layout = html.Div([
     html.Div(className='row', children=[
 
         dbc.Row(
-            dbc.Col(html.Button(
-                'Download',
-                id = 'btn_download',
-                n_clicks = 0
-            ))
+            dbc.Col([
+                html.Button(
+                    'Download',
+                    id = 'btn_download',
+                ),
+                dcc.Download(id='download-files')
+            ])
         ),
 
         dbc.Row([
@@ -130,6 +132,31 @@ app.layout = html.Div([
 
     ])
 ])
+
+
+@app.callback(
+    [
+        Input("btn_submit", "n_clicks"),
+        Input('basic-interactions', 'selectedData')
+    ],
+        Output('intermediate-data', 'data')
+    prevent_initial_call = True
+)
+def download(data):
+    triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
+    if triggered == "btn_submit":
+        download_data = gpd.GeoDataFrame(json.dumps(selectedData)))
+        urls = download_data.iloc[download_data.index]['url'].to_list()
+        return(urls)
+)
+
+
+@app.callback(
+    Input("intermediate-data", 'urls')
+)
+def make_download(urls)
+    for url in urls:
+        dcc.Download(id=url)
 
 
 @app.callback(
