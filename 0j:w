@@ -82,8 +82,7 @@ app.layout = html.Div([
                 ),
                 html.Pre(id='other_output'),
                 dcc.Store(id='begin-download'),
-                html.Div(id='keep_downloading')
-                #dcc.Link(id='keep_downloading',refresh=False)
+                dcc.Link(id='keep_downloading',refresh=False)
             ])
         ),
 
@@ -220,11 +219,9 @@ def begin_download(
 )
 def download(downloading,other_output):
     if downloading:
-        elements = []
         for url in ast.literal_eval(other_output):
-#            element = html.Div(html.A("Test", href=url,target='_blank'))
-            elements.append(dcc.Location(id='someid', href=url, refresh=True))
-        return(elements)
+            element = html.Div(html.A(href=url,target='_blank'))
+            return(url)
 
 
 @app.callback(
