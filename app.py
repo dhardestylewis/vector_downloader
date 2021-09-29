@@ -205,6 +205,7 @@ def begin_download(
 ):
     triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
     if triggered == 'btn_download':
+        ## TODO: reset callback_context above
         return True
     else:
         return False
