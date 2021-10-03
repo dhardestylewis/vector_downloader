@@ -188,7 +188,9 @@ def display_selected_data(selectedData):
 #    download_data = gpd.GeoDataFrame(data)
 #    urls = download_data.iloc[download_data.index]['url'].to_list()
     if selectedData is not None:
-        other_output = pd.DataFrame(selectedData['points'])['pointIndex'].to_list()
+        other_output = pd.DataFrame(
+            selectedData['points']
+        )['pointIndex'].to_list()
         other_output = gdf.iloc[other_output]['url'].to_list()
     else:
         other_output = 'None'
@@ -203,7 +205,10 @@ def display_selected_data(selectedData):
 def begin_download(
     n_add : int
 ):
-    triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
+    triggered = dash.callback_context.triggered[0]['prop_id'].replace(
+        '.n_clicks',
+        ''
+    )
     if triggered == 'btn_download':
         ## TODO: reset callback_context above
         return True
