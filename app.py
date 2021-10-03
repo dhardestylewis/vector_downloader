@@ -13,8 +13,9 @@ import ast
 
 
 #gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
-gdf = gpd.read_file('data/mexico.geojson')
-gdf = gdf.to_crs(epsg=4326)
+gdf = gpd.read_file('data/fim3outputs_coverage_simplified.geojson')
+## Always make sure data is already in EPSG:4326
+#gdf = gdf.to_crs(epsg=4326)
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
