@@ -20,6 +20,7 @@ data_filepath = pathlib.Path(__file__).parent.absolute()
 geojson_file = os.path.join(data_filepath,'data','fim3outputs_coverage_simplified.geojson')
 gdf = gpd.read_file(geojson_file)
 
+
 ## Always make sure data is already in EPSG:4326
 #gdf = gdf.to_crs(epsg=4326)
 

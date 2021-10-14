@@ -10,3 +10,10 @@ img[src*="#thumbnail"] {
   margin: 10px;
   padding: 5px;
 }
+
+
+.no_internet {
+    width: 500px;
+    float:left;
+    margin: 20px;
+}
