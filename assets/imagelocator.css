@@ -17,3 +17,13 @@ img[src*="#thumbnail"] {
     float:left;
     margin: 20px;
 }
+
+*[data-dash-is-loading="true"]{
+    visibility: hidden;
+}
+*[data-dash-is-loading="true"]::before{
+    content: "Loading...";
+    display: inline-block;
+    color: magenta;
+    visibility: visible;
+}
