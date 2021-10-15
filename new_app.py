@@ -3,6 +3,7 @@ import io
 import pathlib
 import json
 import requests
+import base64
 
 import dash
 import dash_core_components as dcc
@@ -145,16 +146,23 @@ app.layout = html.Div([
 
             html.Button('Download files',
                 id = 'btn_download',
-                n_clicks=0,
                 style={"margin":"20px"}
             ),
 
             html.Div(id='confirm-output'),
             dcc.Download(id="download-image")
-            ],width=8
+            ],width=4
             ,
             ),
-        # dbc.Col([html.H4('Downloaded HUC8s'),html.P('refresh your browser to clear this list.')],width=4),
+        dbc.Col([html.H4('Downloaded HUC8s'),
+                html.P('refresh your browser to clear this list.'),
+                html.Button('Download Test',
+                    id = 'btn_test',
+                    style={"margin":"20px"}
+                ),
+                dcc.Download(id="download-test"),
+                html.Div(id='div_test'),
+                ],width=4),
     ]),
 
     dbc.Row(
@@ -175,6 +183,18 @@ app.layout = html.Div([
 # CALLBACKS
 # ----------------------------------------------------------------------------
 
+@app.callback(Output('div_test', 'children'),Output('download-test','data'),
+                Input('btn_test', 'n_clicks'))
+def display_test(n_clicks):
+    triggered = dash.callback_context.triggered[0]['prop_id']
+    if triggered == 'btn_test.n_clicks':
+        image_url = ''.join([example_image_prefix,str(2),example_image_suffix])
+        image_filename = image_url.split("/")[-1]
+        image_content = requests.get(image_url).content
+        content = base64.b64encode(image_content).decode()
+        return 'download clicked', dict(filename=image_filename, content=content,  base64=True)
+
+    return 'different button', None
 
 @app.callback(
     Output('btn_download', 'disabled'),Output('map-selected', 'children'),
