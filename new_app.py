@@ -71,9 +71,24 @@ example_image_prefix = 'https://raw.githubusercontent.com/dhardestylewis/vector_
 example_image_suffix = '.png'
 example_image_list = [2,3,4]
 
-example_image_urls = []
-for i in example_image_list:
-    example_image_urls.append(''.join([example_image_prefix,str(i),example_image_suffix]))
+example_downloads =  html.Div(
+    [
+        html.Div([
+            html.P([''.join([example_image_prefix,str(i),example_image_suffix])],
+                    id={'type':'url-text',
+                        'index':f'text-{i}'}),
+            dcc.Download(id={
+                    'type': 'url-download',
+                    'index': f'download-{i}'
+                }),
+            html.P(
+                    id={'type':'url-output',
+                        'index':f'output-{i}'}
+                  )
+        ]) for i in example_image_list
+    ]
+)
+
 
 #------------------------------
 # Figure Generation
@@ -128,6 +143,17 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div([
     dbc.Row([
+        dbc.Col([html.H4('Test Demo: Multi Download'),
+                html.Button('Download Test',
+                    id = 'btn_test',
+                    style={"margin":"20px"}
+                ),
+                dcc.Download(id="download-test"),
+                html.Div(id='div_test'),
+                example_downloads,
+                ],width=12, style={'border-bottom':'2px solid blue'}),
+    ]),
+    dbc.Row([
         dbc.Col([
             dcc.Graph(
                 id='graph-map',
@@ -151,18 +177,9 @@ app.layout = html.Div([
 
             html.Div(id='confirm-output'),
             dcc.Download(id="download-image")
-            ],width=4
+            ],width=8
             ,
             ),
-        dbc.Col([html.H4('Downloaded HUC8s'),
-                html.P('refresh your browser to clear this list.'),
-                html.Button('Download Test',
-                    id = 'btn_test',
-                    style={"margin":"20px"}
-                ),
-                dcc.Download(id="download-test"),
-                html.Div(id='div_test'),
-                ],width=4),
     ]),
 
     dbc.Row(
@@ -183,18 +200,24 @@ app.layout = html.Div([
 # CALLBACKS
 # ----------------------------------------------------------------------------
 
-@app.callback(Output('div_test', 'children'),Output('download-test','data'),
-                Input('btn_test', 'n_clicks'))
-def display_test(n_clicks):
-    triggered = dash.callback_context.triggered[0]['prop_id']
-    if triggered == 'btn_test.n_clicks':
-        image_url = ''.join([example_image_prefix,str(2),example_image_suffix])
-        image_filename = image_url.split("/")[-1]
-        image_content = requests.get(image_url).content
-        content = base64.b64encode(image_content).decode()
-        return 'download clicked', dict(filename=image_filename, content=content,  base64=True)
+@app.callback([Output({'type': 'url-download', 'index': ALL}, 'data')],
+                Input('btn_test', 'n_clicks'),
+                [State({'type': 'url-text', 'index': ALL}, 'children')]
+    )
+def download_multiple(n_clicks,values):
+    if not n_clicks:
+        raise PreventUpdate
+    else:
+        children = []
+        for f in values:
+            image_url = f[0]
+            image_filename = image_url.split("/")[-1]
+            image_content = requests.get(image_url).content
+            content = base64.b64encode(image_content).decode()
+            data = dict(filename=image_filename, content=content, base64=True)
+            children.append(data)
+        return [children]
 
-    return 'different button', None
 
 @app.callback(
     Output('btn_download', 'disabled'),Output('map-selected', 'children'),
