@@ -1,33 +1,30 @@
 import os
+import io
 import pathlib
 import json
+import requests
+import base64
 
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State, ALL
+from dash.exceptions import PreventUpdate
+from dash_extensions import Download
+from dash_extensions.snippets import send_file
+import dash_table as dt
+
+
 import plotly.express as px
 #import pandas as pd
 import geopandas as gpd
 import pandas as pd
 import ast
 
-
-#gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
-## refer to data/fim3outputs_coverage_simplified.geojson.py for preprocessing
-data_filepath = pathlib.Path(__file__).parent.absolute()
-geojson_file = os.path.join(data_filepath,'data','fim3outputs_coverage_simplified.geojson')
-gdf = gpd.read_file(geojson_file)
-
-
-## Always make sure data is already in EPSG:4326
-#gdf = gdf.to_crs(epsg=4326)
-
-
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# ----------------------------------------------------------------------------
+# Styles (**MOVE THIS TO SEPERATE FILE / CSS)
+# ----------------------------------------------------------------------------
 
 styles = {
     'pre': {
@@ -36,28 +33,82 @@ styles = {
     }
 }
 
-#df = pd.DataFrame({
-#    "x": [1,2,1,2],
-#    "y": [1,2,3,4],
-#    "customdata": [1,2,3,4],
-#    "fruit": ["apple", "apple", "orange", "orange"]
-#})
+
+# ----------------------------------------------------------------------------
+# DATA LOADING
+# ----------------------------------------------------------------------------
+
+#gdf = gpd.read_file('https://gist.githubusercontent.com/Tlaloc-Es/5c82834e5e4a9019a91123cb11f598c0/raw/709ce9126861ef7a7c7cc4afd6216a6750d4bbe1/mexico.geojson')
+## refer to data/fim3outputs_coverage_simplified.geojson.py for preprocessing
+data_filepath = pathlib.Path(__file__).parent.absolute()
+geojson_file = os.path.join(data_filepath,'data','fim3outputs_coverage_simplified.geojson')
+gdf_og = gpd.read_file(geojson_file)
+gdf_cols = gdf_og.columns
+
+# ------
+# Create url column with missing values
+gdf_og['url_original'] = gdf_og['url']
+gdf_og['HUC8'] = gdf_og['HUC8'].apply(pd.to_numeric, errors='ignore')
+gdf_og['url'] = gdf_og.apply(lambda row: row.url if row.HUC8 % 2 == 0 else '' , axis=1)
+gdf_og['available'] = gdf_og.apply(lambda row: 0 if row.url == '' else 1 , axis=1)
+
+gdf = gdf_og
+map_gdf = gdf[~(gdf.url == '')].reset_index(drop=True)
+# ------
+
+
+map_center_lat = gdf.centroid.y.mean()
+map_center_lon = gdf.centroid.x.mean()
+
+## Always make sure data is already in EPSG:4326
+#gdf = gdf.to_crs(epsg=4326)
+
+# ----------------------------------------------------------------------------
+# DATA DOWNLOADIND
+# ----------------------------------------------------------------------------
+
+example_image_prefix = 'https://raw.githubusercontent.com/dhardestylewis/vector_downloader/lissa_app/data/images/austin_'
+example_image_suffix = '.png'
+example_image_list = [2,3,4]
+
+example_downloads =  html.Div(
+    [
+        html.Div([
+            html.P([''.join([example_image_prefix,str(i),example_image_suffix])],
+                    id={'type':'url-text',
+                        'index':f'text-{i}'}),
+            dcc.Download(id={
+                    'type': 'url-download',
+                    'index': f'download-{i}'
+                }),
+            html.P(
+                    id={'type':'url-output',
+                        'index':f'output-{i}'}
+                  )
+        ]) for i in example_image_list
+    ]
+)
+
+
+#------------------------------
+# Figure Generation
+# ----------------------------------------------------------------------------
 
 #fig = px.scatter(df, x="x", y="y", color="fruit", custom_data=["customdata"])
 fig = px.choropleth_mapbox(
-    gdf,
-    geojson = gdf.geometry,
-    locations = gdf.index,
-    color = 'AREA',
-    color_continuous_scale = "Viridis",
-    range_color = (0,12),
+    map_gdf,
+    geojson = map_gdf.geometry,
+    locations = map_gdf.index,
+    custom_data = [map_gdf['NAME'], map_gdf['HUC8']],
+    # color_continuous_scale = "Viridis",
+    # range_color = (0,12),
     mapbox_style = "open-street-map",
-    zoom = 3,
+    zoom = 4,
     center = {
-        "lat" : gdf.centroid.y.mean(),
-        "lon" : gdf.centroid.x.mean()
+        "lat" : map_center_lat,
+        "lon" : map_center_lon
     },
-    opacity = 0.5
+    opacity = 0.5,
 )
 
 fig.update_layout(
@@ -67,335 +118,203 @@ fig.update_layout(
         "l" : 0,
         "b" : 0
     },
-    clickmode = 'event+select',
-    height = 700
+    clickmode = 'event+select', # 'event+select',
+    height = 700,
+    showlegend=False
 )
+
+fig.update_traces(
+    hovertemplate="<br>".join([
+        "%{customdata[0]}",
+        "HUC8: %{customdata[1]}"
+    ])
+)
+
+# ----------------------------------------------------------------------------
+# APP Layout
+# ----------------------------------------------------------------------------
+
+external_stylesheets = [dbc.themes.LITERA]
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
 
 #fig.update_traces(marker_size=20)
 
 app.layout = html.Div([
+    # dbc.Row([
+    #     dbc.Col([html.H4('Test Demo: Multi Download'),
+    #             html.Button('Download Test',
+    #                 id = 'btn_test',
+    #                 style={"margin":"20px"}
+    #             ),
+    #             dcc.Download(id="download-test"),
+    #             html.Div(id='div_test'),
+    #             example_downloads,
+    #             ],width=12, style={'border-bottom':'2px solid blue'}),
+    # ]),
+    dbc.Row([
+        dbc.Col([
+            dcc.Graph(
+                id='graph-map',
+                figure=fig,
 
-    dcc.Graph(
-        id='basic-interactions',
-        figure=fig
-    ),
-
-    html.Div(className='row', children=[
-
-        dbc.Row(
-            dbc.Col([
-                html.Button(
-                    'Download',
-                    id = 'btn_download',
-                ),
-                html.Pre(id='url_list'),
-                dcc.Store(id='btn_download_triggered'),
-                html.Pre(id='button_triggered_value'),
-                html.Pre(id='downloading_now_value'),
-                html.Pre(id='list_populated_value'),
-                dcc.Store(id='url_list_evaled'),
-                dcc.Store(id='urls_left_to_download'),
-                dcc.Store(id='url_list_populated'),
-                dcc.Store(id='downloading_one_at_a_time'),
-                dcc.Store(id='just_one_url'),
-                dcc.Store(id='url_list_completed'),
-                html.Div(id='urls_downloading', children=[]),
-                html.Div(id='popped_urls', children=[]),
-                html.Div(id='url_downloading'),
-                html.Div(id='popped_url')
-            ])
+            ),
+        ],width=4
+        ,
         ),
+        dbc.Col([
+            html.H4('Selected HUC8s '),
+            html.Div(id='map-selected'),
+            dcc.ConfirmDialog(
+                id='confirm',
+            ),
 
-        dbc.Row([
+            html.Button('Download files',
+                id = 'btn_download',
+                style={"margin":"20px"}
+            ),
 
-            html.Div([
-                dcc.Markdown("""
-                    **Hover Data**
+            html.Div(id='confirm-output'),
+            dcc.Download(id="download-image")
+            ],width=8
+            ,
+            ),
+    ]),
 
-                    Mouse over values in the graph.
-                """),
-                html.Pre(id='hover-data', style=styles['pre'])
-            ], className='three columns'),
-
-            html.Div([
-                dcc.Markdown("""
-                    **Click Data**
-
-                    Click on points in the graph.
-                """),
-                html.Pre(id='click-data', style=styles['pre']),
-            ], className='three columns'),
-
-            html.Div([
-                dcc.Markdown("""
-                    **Selection Data**
-
-                    Choose the lasso or rectangle tool in the graph's menu
-                    bar and then select points in the graph.
-
-                    Note that if `layout.clickmode = 'event+select'`, selection data also
-                    accumulates (or un-accumulates) selected data if you hold down the shift
-                    button while clicking.
-                """),
-                html.Pre(id='selected-data', style=styles['pre']),
-            ], className='three columns'),
-
-            html.Div([
-                dcc.Markdown("""
-                    **Zoom and Relayout Data**
-
-                    Click and drag on the graph to zoom or click on the zoom
-                    buttons in the graph's menu bar.
-                    Clicking on legend items will also fire
-                    this event.
-                """),
-                html.Pre(id='relayout-data', style=styles['pre']),
-            ], className='three columns')
+    dbc.Row(
+        dbc.Col([
+            html.Div(id='download-output')
 
         ])
+    ),
 
+    dbc.Row([
+        dbc.Col(id='bottom-left',width=6),
+        dbc.Col(id = 'bottom-right',width=6),
     ])
+
 ])
 
+# ----------------------------------------------------------------------------
+# CALLBACKS
+# ----------------------------------------------------------------------------
 
-#@app.callback(
-#    Output('intermediate-data', 'data'),
-#    [
-#        Input("btn_download", "n_clicks"),
-#        Input('basic-interactions', 'selectedData')
-#    ]
-#)
-#def download(n_clicks,selectedData):
-#    triggered = dash.callback_context.triggered[0]['prop_id'].replace('.n_clicks','')
-#    if triggered == "btn_submit":
-#        download_data = gpd.GeoDataFrame(json.dumps(selectedData))
-#        urls = download_data.iloc[download_data.index]['url'].to_list()
-#        return(urls)
-#
-#
-#@app.callback(
-#    Input("intermediate-data", 'data'),
-#    prevent_initial_call = True
-#)
-#def make_download(urls):
-#    for url in urls:
-#        dcc.Download(id=url)
+# @app.callback([Output({'type': 'url-download', 'index': ALL}, 'data')],
+#                 Input('btn_test', 'n_clicks'),
+#                 [State({'type': 'url-text', 'index': ALL}, 'children')]
+#     )
+# def download_multiple(n_clicks,values):
+#     if not n_clicks:
+#         raise PreventUpdate
+#     else:
+#         children = []
+#         for f in values:
+#             image_url = f[0]
+#             image_filename = image_url.split("/")[-1]
+#             image_content = requests.get(image_url).content
+#             content = base64.b64encode(image_content).decode()
+#             data = dict(filename=image_filename, content=content, base64=True)
+#             children.append(data)
+#         return [children]
 
 
 @app.callback(
-    Output('hover-data', 'children'),
-    Input('basic-interactions', 'hoverData'))
-def display_hover_data(hoverData):
-    return json.dumps(hoverData, indent=2)
-
-
-@app.callback(
-    Output('click-data', 'children'),
-    Input('basic-interactions', 'clickData'))
-def display_click_data(clickData):
-    return json.dumps(clickData, indent=2)
-
-
-@app.callback(
-    [
-        Output('selected-data', 'children'),
-        Output('url_list', 'children')
-    ],
-    Input('basic-interactions', 'selectedData'))
+    Output('btn_download', 'disabled'),Output('map-selected', 'children'),
+    Input('graph-map', 'selectedData'))
 def display_selected_data(selectedData):
-#    data = json.dumps(selectedData)
-#    download_data = gpd.GeoDataFrame(data)
-#    urls = download_data.iloc[download_data.index]['url'].to_list()
-    if selectedData is not None:
-        url_list = pd.DataFrame(
-            selectedData['points']
-        )['pointIndex'].to_list()
-        url_list = gdf.iloc[url_list]['url'].to_list()
+    if selectedData:
+        button_status = False
+        hucs_indices = pd.DataFrame(selectedData['points'])['pointIndex'].to_list()
+        children = []
+        for i in hucs_indices:
+            row_values = map_gdf.iloc[i]
+            NAME = row_values['NAME']
+            STATES = row_values['STATES']
+            HUC8 = row_values['HUC8']
+            if row_values['url']:
+                url = row_values['url']
+            else:
+                url = 'empty?'
+            i_div = html.Div([
+                html.Div([
+                    html.P([NAME, ' [',STATES,'], ', HUC8],style={'margin-bottom':0,'font-weight':'bold'}),
+                    html.P([url])
+                    ], id={'type':'selected-huc','index':url}),
+                dcc.Loading(id="loading-1", children=[
+                    dcc.Download(id={
+                            'type': 'huc-download',
+                            'index': f'huc-download-{i}'
+                        }),
+                ], type="default"),
+            ])
+            children.append(i_div)
+
     else:
-        url_list = 'None'
-    return json.dumps(selectedData, indent=2),str(url_list)
-#    return ','.join(urls)
+        button_status = True
+        children = html.Div([html.P('Please use the selection tools in the map to select one or more HUC8s for file download. '),html.Br()])
+    return button_status, children
 
 
-@app.callback(
-    Output('btn_download_triggered', 'data'),
-    Input('btn_download', 'n_clicks')
-)
-def begin_download(
-    n_add : int
-):
+@app.callback(Output('confirm', 'displayed'),
+                Output('confirm', 'message'),
+                Input('btn_download', 'n_clicks'))
+def display_confirm(n_clicks):
     triggered = dash.callback_context.triggered[0]['prop_id']
     if triggered == 'btn_download.n_clicks':
-        ## TODO: reset callback_context above
-        return True
+        return True, 'Note: the linked TIF files are large. Do you wish to continue?'
+    return False, None
+
+@app.callback(
+            # Output('confirm-output', 'children'),
+            [Output({'type': 'huc-download', 'index': ALL}, 'data')],
+              Input('confirm', 'submit_n_clicks'),
+              [State({'type': 'selected-huc', 'index': ALL}, 'id')]
+              ) # id={'type':'selected-huc','index':i}
+def update_output(submit_n_clicks, hucs_indices):
+    if not submit_n_clicks:
+        raise PreventUpdate
     else:
-        return False
-    return False
+        children = []
+        for i in hucs_indices:
+            image_url = i['index']
+            image_filename = image_url.split("/")[-2] + '.' + image_url.split(".")[-1]
+            image_content = requests.get(image_url).content
+            content = base64.b64encode(image_content).decode()
+            data = dict(filename=image_filename, content=content, base64=True)
+            children.append(data)
+        return [children]
+
+#         children = []
+#         for f in values:
+#             image_url = f[0]
+#             image_filename = image_url.split("/")[-1]
+#             image_content = requests.get(image_url).content
+#             content = base64.b64encode(image_content).decode()
+#             data = dict(filename=image_filename, content=content, base64=True)
+#             children.append(data)
 
 
-@app.callback(
-    Output('downloading_one_at_a_time', 'data'),
-    Input('urls_left_to_download', 'data')
-)
-def still_downloading(urls_downloading):
+# @app.callback(Output('confirm-output', 'children'),
+#               Input('confirm', 'submit_n_clicks'),
+#               [State({'type': 'selected-huc', 'index': ALL}, 'id')]
+#               ) # id={'type':'selected-huc','index':i}
+# def update_output(submit_n_clicks, hucs_indices):
+#     if submit_n_clicks:
+#         # children = [html.P(str(i['index'])) for i in hucs_indices]
+#         hucs = []
+#         for i in hucs_indices:
+#             hucs.append(i['index'])
+#         # Change this to show which files were downloaded
+#         gdf_selected = map_gdf.iloc[hucs][['NAME','STATES','HUC8','url']]
+#         children = dt.DataTable(
+#                     id='table',
+#                     columns=[{"name": i, "id": i} for i in gdf_selected.columns],
+#                     data=gdf_selected.to_dict('records'),
+#                     )
+#
+#         return children
 
-    if urls_downloading is None:
-        urls_downloading = []
-
-    if len(urls_downloading) > 0:
-        return(True)
-    else:
-        return(False)
-
-    return(False)
-
-
-@app.callback(
-    Output('downloading_now_value', 'children'),
-    Input('downloading_one_at_a_time', 'data')
-)
-def print_button_status(btn_download_triggered):
-    return([str(btn_download_triggered)])
-
-
-@app.callback(
-    Output('button_triggered_value', 'children'),
-    Input('btn_download_triggered', 'data')
-)
-def print_button_status(btn_download_triggered):
-    return([str(btn_download_triggered)])
-
-
-@app.callback(
-    Output('list_populated_value', 'children'),
-    Input('url_list_populated', 'data')
-)
-def print_button_status(btn_download_triggered):
-    return([str(btn_download_triggered)])
-
-
-@app.callback(
-    Output('url_list_evaled', 'data'),
-    [
-        Input('btn_download_triggered', 'data'),
-        Input('url_list', 'children')
-    ]
-)
-def prepare_download(btn_download_triggered,url_list):
-    if btn_download_triggered and url_list is not None:
-        download_urls = []
-        for url in ast.literal_eval(url_list):
-            download_urls.append(url)
-#            element = html.Div(html.A("Test", href=url,target='_blank'))
-        return(download_urls)
-
-
-@app.callback(
-    [
-        Output('popped_urls', 'children'),
-        Output('popped_url', 'children'),
-        Output('url_list_completed', 'data')
-    ],
-    [
-        Input('url_list_populated', 'data'),
-        Input('urls_downloading', 'children'),
-    ],
-    State('popped_urls', 'children')
-)
-def download_urls(url_list_populated, url_to_download, popped_urls):
-    if not url_list_populated:
-        url_list_completed = False
-        popped_url = 'No current download'
-    else:
-        triggered = dash.callback_context.triggered[0]['prop_id'].replace(
-            'btn_download.n_clicks',
-            ''
-        )
-        if url_to_download is not None:
-            popped_url = popped_urls.pop()
-            url_list_completed = False
-            return(popped_urls,popped_url,url_list_completed)
-        else:
-            url_list_completed = True
-            return(popped_urls,popped_url,url_list_completed)
-    return(popped_urls,popped_url,url_list_completed)
-
-
-@app.callback(
-    Output('url_downloading', 'children'),
-    [
-        Input({
-            'type' : 'download_triggered',
-            'index' : ALL
-        }, 'value'),
-        Input('urls_downloading', 'children')
-    ]
-)
-def trigger_download(ignore,values):
-    if values is not None:
-        return(html.Div([
-            html.Div(value)
-            for value in values
-        ]))
-
-
-@app.callback(
-    [
-        Output('urls_downloading', 'children'),
-        Output('url_list_populated', 'data')
-    ],
-    [
-        Input('btn_download_triggered', 'data'),
-        Input('url_list_evaled', 'data'),
-    ],
-    State('urls_downloading', 'children')
-)
-def download_urls(btn_download_triggered, url_list_evaled, urls_to_download):
-    if not btn_download_triggered:
-        url_list_populated = False
-    else:
-        if url_list_evaled is not None:
-            for url_to_download in url_list_evaled:
-                url_element_to_download = dcc.Location(
-                    id = {
-                        'type' : 'download_triggered',
-                        'index' : url_to_download,
-                    },
-                    href = url_to_download,
-                    refresh = True
-                )
-                urls_to_download.append(url_element_to_download)
-            url_list_populated = False
-            return(urls_to_download,url_list_populated)
-        else:
-            url_list_populated = True
-            return(urls_to_download,url_list_populated)
-    return(urls_to_download,url_list_populated)
-
-
-#@app.callback(
-#    Output('url_downloading', 'children'),
-#    [
-#        Input({
-#            'type' : 'download_triggered',
-#            'index' : ALL
-#        }, 'value'),
-#        Input('urls_downloading', 'children')
-#    ]
-#)
-#def trigger_download(ignore,values):
-#    if values is not None:
-#        return(html.Div([
-#            html.Div(value)
-#            for value in values
-#        ]))
-
-
-@app.callback(
-    Output('relayout-data', 'children'),
-    Input('basic-interactions', 'relayoutData'))
-def display_relayout_data(relayoutData):
-    return json.dumps(relayoutData, indent=2)
 
 
 if __name__ == '__main__':
